@@ -44,91 +44,15 @@ Eigen::Matrix<double,4,1> Particle::get_x(){
 }
 
 //位置推定に必要な変数の初期化
-Pso::Pso(PixelPosition navel,
-               const BorderImage &image,
-               RenderSetting param,
-               BorderSetting border_param) :
-               bottom(border_param.get_bottom_right_y()), //[Estimation]から情報を読み取れるように
-               top(border_param.get_top_left_y()), //top,left,bottom,rightの初期化をparamから行えるようにする
-               left(border_param.get_top_left_x()), //そのためにはRenderSettingの中身を書き換える必要がある
-               right(border_param.get_bottom_right_x()),
-               navel(navel),
-               border_image_(image.GetBorderImg()),
-               body_image_(image.GetBodyImg()),
-               render_setting_(param),
-               border_setting_(border_param),
-               imgsizeh_(border_image_.rows),
-               imgsizew_(body_image_.cols),
-               pixelnum_((bottom - top + 1) * (right - left + 1)){
-    system("mkdir ./IntermediateData/CameraSearch/");
+Pso::Pso(){
     pnum = 20;
     psomaxsec = 15;
     pso_max_loop = 1000;
     //omega_end_fitは基本的にはpso_thresholdと同じにするがthresholdが探索の終わりを意味しない時は変更する
     omega_end_fit = 1000000;
-    pso_threshold = 1000000000;
-    hc_threshold  = 1000000000; //0でHCを行わない,10^9
+    pso_threshold = 1000000000; 
     p_init_flag = 0; //0のとき正規乱数,1のとき一様関数による粒子の初期化
     omega_flag = 0; //omegaの関数の種類.0オフ,1線形減少
-}
-
-std::tuple<Position, cv::Mat> Pso::search_iterate(int iteration, Position parameter, std::string camerafilename)
-{
-    //temp_変数で受け取った値を保存しておく変数
-    std::vector<double> fitness;
-    std::vector<cv::Mat> result_image;
-    std::vector<std::vector<double>> camera_parameter(4);
-
-    for (int i = 0; i < iteration; i++) {
-        std::cout << "camera search: " << i+1 << std::endl;
-        //search関数からそれぞれの値を受け取る
-        particles = new Particle[pnum];
-        auto [temp_Position, temp_image] = search(particles, parameter);
-        delete [] particles;
-
-        fitness.push_back(temp_Position.GetFitness());
-        camera_parameter[0].push_back(temp_Position.GetAlpha()); //alpha
-        camera_parameter[1].push_back(temp_Position.GetBeta()); //beta
-        camera_parameter[2].push_back(temp_Position.GetGamma()); //gamma
-        camera_parameter[3].push_back(temp_Position.GetT3()); //t3
-        result_image.push_back(temp_image);
-
-
-        //以下の部分はmainwindow.cppのsearch_iterate()実行直後でやっても良い。
-        //その場合繰り返した後に最良の結果が一つだけ保存される。
-        //ここでは繰り返しの各回ごとの結果を保存できるようにしている。
-        std::string datepath = make_directory();
-        system(("mv ./IntermediateData ./result_camera_search/* "+datepath).c_str());
-    }
-
-    std::string methodpath = "PSO";
-    if (hc_threshold>0) methodpath = methodpath+"HC";
-    if (p_init_flag == 0) {methodpath = methodpath+"Norm";}
-    else if (p_init_flag == 1){methodpath = methodpath+"Unif";}
-    if (omega_flag == 1){methodpath = methodpath+"Dec";}
-
-
-//    std::string mvpath;
-//    mvpath = ("/Users/maru/Desktop/比較/GAHCPSOHCレンダリング実験PSOreinit/"+methodpath+"/"+"time"+ std::to_string(psomaxsec)+camerafilename).c_str();
-//    mvpath = ("/Users/maru/Desktop/比較/GAPSOレンダリング実験PSOreinit/"+methodpath+camerafilename).c_str();
-//    system(("mv /Users/maru/Desktop/Experiment/* "+mvpath).c_str());
-//    std::cout << mvpath << std::endl;
-//    system("say -v Fled The experiment is over."); //アナウンスする
-
-    //適応度が最大のインデックスを取得する
-    auto max_iterator = std::max_element(fitness.begin(), fitness.end());
-    size_t max_index = std::distance(fitness.begin(), max_iterator);
-
-    Position search_result;
-    search_result.SetFitness(fitness[max_index]);
-    search_result.SetAlpha(camera_parameter[0][max_index]);
-    search_result.SetBeta(camera_parameter[1][max_index]);
-    search_result.SetGamma(camera_parameter[2][max_index]);
-    search_result.SetT3(camera_parameter[3][max_index]);
-
-    std::cout << " result" << std::endl;
-
-    return {search_result, result_image[max_index]};
 }
 
 std::tuple<Position, cv::Mat> Pso::search(Particle *particles, Position parameter)
@@ -205,7 +129,7 @@ std::tuple<Position, cv::Mat> Pso::search(Particle *particles, Position paramete
     ofs2 << std::fixed << std::setprecision(0) << "seed,"<< seed << std::endl;
     ofs2.close();
 
-    do{ //loop0でfgが一定値を超えるまで初期化をやり直す
+    do{ 
         for(int i=0; i<pnum; i++){
             //r1,r2に0-1の一様乱数を格納
             particles[i].r1(0) = unif01(mt);
@@ -246,7 +170,7 @@ std::tuple<Position, cv::Mat> Pso::search(Particle *particles, Position paramete
             }
         }
         std::cout << "Particles initialized fg=" << fg << ", seed=" << seed << std::endl;
-    }while(fg < 0);
+    }while(fg < 0); //loop0でfgが一定値を超えるまで初期化をやり直す
 
     //粒子No.0はカメラ,メジャーの測定値を初期値とする．
     particles[0].x << particles[0].init_param.GetAlpha(),particles[0].init_param.GetBeta(),
