@@ -1,11 +1,12 @@
 #include <string>
 #include <boost/progress.hpp>
 #include <fstream>
-#include <opencv2/opencv.hpp>
 #include <Eigen/Core>
 #include <Eigen/LU>
 #include <vector>
 #include <random>
+#include <iomanip>
+#include <sys/stat.h>
 
 class Particle 
 {

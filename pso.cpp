@@ -1,9 +1,5 @@
 #include "PSO.h"
-#include <vector>
-#include <fstream>
-#include <opencv2/opencv.hpp>
-#include <iomanip>
-#include <sys/stat.h>
+
 
 using namespace std;
 //staticメンバの初期化, 推定するパラメータの範囲
